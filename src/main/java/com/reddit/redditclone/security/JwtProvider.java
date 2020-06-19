@@ -3,13 +3,13 @@ package com.reddit.redditclone.security;
 
 //import com.reddit.redditclone.model.User;
 import com.reddit.redditclone.exception.SpringCustomeException;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
@@ -45,8 +45,26 @@ public class JwtProvider {
         try{
             return (PrivateKey) keyStore.getKey("redditclone", "niketpatel".toCharArray());
         }catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e){
+            throw  new SpringCustomeException("Exception occured while retriving private key from keystrom");
+        }
+    }
+
+    public boolean validateToken(String jwt){
+        Jwts.parser().setSigningKey(getPublickey()).parseClaimsJws(jwt);
+        return true;
+    }
+
+    private PublicKey getPublickey() {
+        try{
+            return keyStore.getCertificate("redditclone").getPublicKey();
+        }catch (KeyStoreException e){
             throw  new SpringCustomeException("Exception occured while retriving public key from keystrom");
         }
+    }
+
+    public String getUsernameFromToken(String token){
+        Claims claims = Jwts.parser().setSigningKey(getPublickey()).parseClaimsJws(token).getBody();
+        return claims.getSubject();
     }
 
 }
