@@ -2,6 +2,7 @@ package com.reddit.redditclone.service;
 
 import com.reddit.redditclone.dto.AuthenticationResponse;
 import com.reddit.redditclone.dto.LoginRequest;
+import com.reddit.redditclone.dto.RefreshTokenRequest;
 import com.reddit.redditclone.dto.RegisterRequest;
 import com.reddit.redditclone.exception.SpringCustomeException;
 import com.reddit.redditclone.model.NotificationEmail;
@@ -33,8 +34,9 @@ public class AuthService {
     private  final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public void signup(RegisterRequest registerRequest){
@@ -84,10 +86,16 @@ public class AuthService {
         Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authenticate);
         String token = jwtProvider.generateToken(authenticate);
-        return new AuthenticationResponse(token , loginRequest.getUsername());
-
-
-
+//        return new AuthenticationResponse(token,
+//                loginRequest.getUsername(),
+//                refreshTokenService.generateRefreshToken().getToken(),
+//                Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+        return AuthenticationResponse.builder()
+                .authenticationToken(token)
+                .refreshToken(refreshTokenService.generateRefreshToken().getToken())
+                .expireAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()))
+                .username(loginRequest.getUsername())
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -97,4 +105,20 @@ public class AuthService {
         return userRepository.findByUserName(principal.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User name not found - " + principal.getUsername()));
     }
+
+    public AuthenticationResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+        refreshTokenService.validateRefreshToken(refreshTokenRequest.getRefreshToken());
+        String token = jwtProvider.generateTokenWithUserName(refreshTokenRequest.getUsername());
+        return AuthenticationResponse.builder()
+                .authenticationToken(token)
+                .refreshToken(refreshTokenRequest.getRefreshToken())
+                .expireAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()))
+                .username(refreshTokenRequest.getUsername())
+                .build();
+//        return new AuthenticationResponse(token,
+//                refreshTokenRequest.getUsername(),
+//                refreshTokenRequest.getRefreshToken(),
+//                Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+    }
+
 }
