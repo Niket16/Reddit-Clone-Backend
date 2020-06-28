@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import static com.reddit.redditclone.model.VoteType.UPVOTE;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -24,6 +25,7 @@ public class VoteService {
     private final VoteRepository voteRepository;
     private final AuthService authService;
 
+
     @Transactional
     public void vote(VoteDto voteDto) {
         Post post = postRepository.findById(voteDto.getPostId())
@@ -31,14 +33,23 @@ public class VoteService {
 
         Optional<Vote> voteByPostAndUser = voteRepository.findTopByPostAndUserOrderByVoteIDDesc(post, authService.getCurrentUser());
 
+        int addSub;
+        if(voteByPostAndUser.toString().equals("Optional.empty")){
+            //log.info("Null Done" );
+            addSub = 1;
+        }else {
+            addSub = 2;
+        }
+
         if(voteByPostAndUser.isPresent() && voteByPostAndUser.get().getVoteType().equals(voteDto.getVoteType())){
             throw new SpringCustomeException("You have already " + voteDto.getVoteType() + "d this post");
         }
         if (UPVOTE.equals(voteDto.getVoteType())) {
-            post.setVoteCount(post.getVoteCount() + 1);
+            //log.info("addSub" + addSub);
+            post.setVoteCount(post.getVoteCount() + addSub );
         } else {
-            log.info("logData"+String.valueOf(post.getVoteCount()));
-            post.setVoteCount(post.getVoteCount() - 1);
+            //log.info("addSub" + addSub);
+            post.setVoteCount(post.getVoteCount() - addSub);
         }
         voteRepository.save(mapToVote(voteDto, post));
         postRepository.save(post);
