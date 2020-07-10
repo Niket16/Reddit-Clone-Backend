@@ -3,15 +3,18 @@ package com.reddit.redditclone.mapper;
 import com.github.marlonlom.utilities.timeago.TimeAgo;
 import com.reddit.redditclone.dto.PostRequest;
 import com.reddit.redditclone.dto.PostResponse;
-import com.reddit.redditclone.model.Post;
-import com.reddit.redditclone.model.Subreddit;
-import com.reddit.redditclone.model.User;
+import com.reddit.redditclone.model.*;
 import com.reddit.redditclone.repository.CommentsRepository;
 import com.reddit.redditclone.repository.VoteRepository;
 import com.reddit.redditclone.service.AuthService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Optional;
+
+import static com.reddit.redditclone.model.VoteType.DOWNVOTE;
+import static com.reddit.redditclone.model.VoteType.UPVOTE;
 
 
 @Mapper(componentModel = "spring")
@@ -40,6 +43,8 @@ public abstract class PostMapper {
     @Mapping(target = "userName" , source = "user.userName")
     @Mapping(target = "duration", expression = "java(getDuration(post))")
     @Mapping(target = "commentCount", expression = "java(commentCount(post))")
+    @Mapping(target = "upVote", expression = "java(isPostUpVoted(post))")
+    @Mapping(target = "downVote", expression = "java(isPostDownVoted(post))")
     public abstract PostResponse mapToDto(Post post);
 
     Integer commentCount(Post post) {
@@ -49,4 +54,24 @@ public abstract class PostMapper {
     String getDuration(Post post) {
         return TimeAgo.using(post.getCreatedDate().toEpochMilli());
     }
+
+    boolean isPostUpVoted(Post post) {
+        return checkVoteType(post, UPVOTE);
+    }
+
+    boolean isPostDownVoted(Post post) {
+        return checkVoteType(post, DOWNVOTE);
+    }
+
+    private boolean checkVoteType(Post post, VoteType voteType) {
+        if (authService.isLoggedIn()) {
+            Optional<Vote> voteForPostByUser =
+                    voteRepository.findTopByPostAndUserOrderByVoteIDDesc(post,
+                            authService.getCurrentUser());
+            return voteForPostByUser.filter(vote -> vote.getVoteType().equals(voteType))
+                    .isPresent();
+        }
+        return false;
+    }
+
 }

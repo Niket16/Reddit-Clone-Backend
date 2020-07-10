@@ -12,6 +12,8 @@ import com.reddit.redditclone.repository.UserRepository;
 import com.reddit.redditclone.repository.VerificationTokenRepository;
 import com.reddit.redditclone.security.JwtProvider;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,6 +30,7 @@ import java.util.UUID;
 @Service
 @AllArgsConstructor
 @Transactional
+@Slf4j
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
@@ -90,6 +93,10 @@ public class AuthService {
 //                loginRequest.getUsername(),
 //                refreshTokenService.generateRefreshToken().getToken(),
 //                Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+
+        log.info("expireAt" + Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+        log.info("Instant.now" + Instant.now());
+        log.info("jwtProvider" + jwtProvider.getJwtExpirationInMillis());
         return AuthenticationResponse.builder()
                 .authenticationToken(token)
                 .refreshToken(refreshTokenService.generateRefreshToken().getToken())
@@ -99,7 +106,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    User getCurrentUser() {
+    public User getCurrentUser() {
         org.springframework.security.core.userdetails.User principal = (org.springframework.security.core.userdetails.User) SecurityContextHolder.
                 getContext().getAuthentication().getPrincipal();
         return userRepository.findByUserName(principal.getUsername())
@@ -119,6 +126,11 @@ public class AuthService {
 //                refreshTokenRequest.getUsername(),
 //                refreshTokenRequest.getRefreshToken(),
 //                Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()));
+    }
+
+    public boolean isLoggedIn() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return !(authentication instanceof AnonymousAuthenticationToken) && authentication.isAuthenticated();
     }
 
 }
