@@ -57,7 +57,7 @@ public class AuthService {
         mailService.sendMail(new NotificationEmail("Please Activate your Account",
                 user.getEmail(),"Thank you for signing up to  Reddit-Clone, " +
                 "please click on the below url to activate your account : " +
-                "http://localhost:8080/api/auth/accountVerification/" + token));
+                "https://redditcloneapp.herokuapp.com/api/auth/accountVerification/" + token));
 
     }
     @Transactional
