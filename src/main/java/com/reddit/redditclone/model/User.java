@@ -38,4 +38,10 @@ public class User {
     private Instant created;
 
     private boolean enabled;
+
+    private Long providerId;
+
+    private String providerName;
+
+    private String imageUrl;
 }

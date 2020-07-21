@@ -42,23 +42,37 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public void signup(RegisterRequest registerRequest){
+    public String signup(RegisterRequest registerRequest){
+        Boolean email = userRepository.findByEmail(registerRequest.getEmail()).toString().equals("Optional.empty");
+        Boolean username  = userRepository.findByUserName(registerRequest.getUsername()).toString().equals("Optional.empty");
         User user = new User();
-        user.setUserName(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setCreated(Instant.now());
-        user.setEnabled(false);
 
-        userRepository.save(user);
+        if(email){
+            if(username){
+                user.setUserName(registerRequest.getUsername());
+                user.setEmail(registerRequest.getEmail());
+                user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+                user.setCreated(Instant.now());
+                user.setEnabled(false);
+                user.setProviderName("local");
 
-        String token = generateVarificationToken(user);
+                String token = generateVarificationToken(user);
 
-        mailService.sendMail(new NotificationEmail("Please Activate your Account",
-                user.getEmail(),"Thank you for signing up to  Reddit-Clone, " +
-                "please click on the below url to activate your account : " +
-                "https://redditcloneapp.herokuapp.com/api/auth/accountVerification/" + token));
+                mailService.sendMail(new NotificationEmail("Please Activate your Account",
+                        user.getEmail(),"Thank you for signing up to  Reddit-Clone, " +
+                        "please click on the below url to activate your account : " +
+                        "https://redditcloneapp.herokuapp.com/api/auth/accountVerification/" + token));
 
+                userRepository.save(user);
+            }
+            else{
+                return "Username already exists";
+            }
+        }
+        else {
+            return "Email already exists";
+        }
+        return "User registered";
     }
     @Transactional
     private String generateVarificationToken(User user) {
